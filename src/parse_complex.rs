@@ -107,7 +107,7 @@ mod tests {
         case::bracket_valid("(2, -2)", Complex::new(2.0, -2.0)),
         case::bracket_valid_again("(-7, 3)", Complex::new(-7.0, 3.0)),
         case::bracket_zeros("(0, 0)", Complex::ZERO),
-        case::bracket_exponents("(1.0e12, -0.7e4)", Complex::new(1.0e12, -0.7e4)),
+        case::bracket_exponents("(1.0e12, -0.7E4)", Complex::new(1.0e12, -0.7e4)),
         case::bracket_whitespace_ok("  (   1.0   ,     7.0    )", Complex::new(1.0, 7.0)),
         case::plain_real_only("34.5", Complex::new(34.5, 0.0)),
         case::plain_real_only_negative("-1", Complex::new(-1.0, 0.0)),
@@ -120,7 +120,7 @@ mod tests {
         case::plain_imaginary_both_parts_real_negative("-2.0 + 3i", Complex::new(-2.0, 3.0)),
         case::plain_imaginary_both_parts_imaginary_negative("2 - 3.4i", Complex::new(2.0, -3.4)),
         case::plain_whitespace_ok("  +   2.3    -     4i   ", Complex::new(2.3, -4.0)),
-        case::plain_with_exponents("-2.1e-7 - 4.1e-7i", Complex::new(-2.1e-7, -4.1e-7)),
+        case::plain_with_exponents("-2.1e-7 - 4.1E-7i", Complex::new(-2.1e-7, -4.1e-7)),
         case::plain_redundant_plus("2 + -1i", Complex::new(2.0, -1.0)),
         case::plain_redundant_starting_plus("+2", Complex::new(2.0, 0.0)),
         case::plain_redundant_starting_plus_imaginary("+3i", Complex::new(0.0, 3.0))
