@@ -1,15 +1,10 @@
 use num_complex::Complex;
 
-pub fn from_str(s: &str) -> Option<Complex<f64>> {
+pub fn from_str(s: &str) -> Result<Complex<f64>, String> {
     let result= from_bracket_form(s)
         .or_else(|| from_standard_form(s));
-
-
-    if result.is_none() {
-        println!("Cannot parse '{}' to a complex number", s);
-    }
     
-    result
+    result.ok_or(format!("Cannot parse '{s}' to a complex number"))
 }
 
 /// Parse a complex number from the bracketed form `(a, b)`.
@@ -147,6 +142,6 @@ mod tests {
     )]
     fn parsing_invalid_str_returns_none(input: &str) {
         let result = from_str(input);
-        assert_eq!(None, result);
+        assert!(result.is_err());
     }
 }
