@@ -7,11 +7,11 @@ pub fn from_str(s: &str) -> Result<Complex<f64>, String> {
     result.ok_or(format!("Cannot parse '{s}' to a complex number"))
 }
 
-/// Parse a complex number from the bracketed form `(a, b)`.
+/// Parse a complex number from the bracketed form `{a, b}`.
 fn from_bracket_form(s: &str) -> Option<Complex<f64>> {
     let parts: Vec<&str> = s.trim()
-        .strip_prefix("(")?
-        .strip_suffix(")")?
+        .strip_prefix("{")?
+        .strip_suffix("}")?
         .split(',')
         .map(|s| s.trim())
         .collect();
@@ -99,11 +99,11 @@ mod tests {
 
     #[rstest(
         input, expected,
-        case::bracket_valid("(2, -2)", Complex::new(2.0, -2.0)),
-        case::bracket_valid_again("(-7, 3)", Complex::new(-7.0, 3.0)),
-        case::bracket_zeros("(0, 0)", Complex::ZERO),
-        case::bracket_exponents("(1.0e12, -0.7E4)", Complex::new(1.0e12, -0.7e4)),
-        case::bracket_whitespace_ok("  (   1.0   ,     7.0    )", Complex::new(1.0, 7.0)),
+        case::bracket_valid("{2, -2}", Complex::new(2.0, -2.0)),
+        case::bracket_valid_again("{-7, 3}", Complex::new(-7.0, 3.0)),
+        case::bracket_zeros("{0, 0}", Complex::ZERO),
+        case::bracket_exponents("{1.0e12, -0.7E4}", Complex::new(1.0e12, -0.7e4)),
+        case::bracket_whitespace_ok("  {   1.0   ,     7.0    }", Complex::new(1.0, 7.0)),
         case::plain_real_only("34.5", Complex::new(34.5, 0.0)),
         case::plain_real_only_negative("-1", Complex::new(-1.0, 0.0)),
         case::plain_real_only_exponent("-1e+8", Complex::new(-1e+8, 0.0)),
@@ -130,11 +130,11 @@ mod tests {
         case::not_a_number("fgdfgdfg"),
         case::blank(""),
         case::no_brackets("1.0, -1.0"),
-        case::missing_start_bracket("1.0, 2.0)"),
-        case::missing_end_bracket("(1.0, 1.0"),
-        case::missing_comma("(1.0 2.0)"),
-        case::too_many_parts("(1.0, 2.0, 3.0)"),
-        case::first_not_a_number("(b, 1.0)"),
+        case::missing_start_bracket("1.0, 2.0}"),
+        case::missing_end_bracket("{1.0, 1.0"),
+        case::missing_comma("{1.0 2.0}"),
+        case::too_many_parts("{1.0, 2.0, 3.0}"),
+        case::first_not_a_number("{b, 1.0}"),
         case::second_not_a_number("-2.0, zz"),
         case::plain_real_not_a_number("z + 2i"),
         case::plain_imaginary_not_a_number("2 - wi"),
