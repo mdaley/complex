@@ -2,7 +2,8 @@ use num_complex::Complex;
 
 pub fn from_str(s: &str) -> Result<Complex<f64>, String> {
     let result= from_bracket_form(s)
-        .or_else(|| from_standard_form(s));
+        .or_else(|| from_standard_form(s))
+        .or_else(|| from_polar_form(s));
     
     result.ok_or(format!("Cannot parse '{s}' to a complex number"))
 }
@@ -76,6 +77,27 @@ fn from_standard_form(s: &str) -> Option<Complex<f64>> {
         
 }
 
+fn from_polar_form(s: &str) -> Option<Complex<f64>> {
+    let cleaned: String = s.chars()
+        .filter(|c| !c.is_whitespace())
+        .collect();
+
+    let parts: Vec<&str> = cleaned
+        .strip_prefix("@{")?
+        .strip_suffix("}")?
+        .split(',')
+        .collect();
+
+    if parts.len() != 2 {
+        return None;
+    }
+
+    let r = parts[0].parse::<f64>().ok()?;
+    let theta = parts[1].parse::<f64>().ok()?;
+
+    Some(Complex::new(r * theta.cos(), r * theta.sin()))
+}
+
 /// Parse to number after removing the i suffix, but also deal with special cases of
 /// `i` and `-i`. Put any exponents back to their correct form.
 fn imaginary_value(s: &str) -> Result<f64, std::num::ParseFloatError> {
@@ -94,8 +116,19 @@ fn real_value(s: &str) -> Result<f64, std::num::ParseFloatError> {
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
-
     use super::*;
+
+    // Assert that two complex numbers are close to each other, with
+    // both parts not differing by more than a specified factor.
+    macro_rules! assert_complex_close {
+        ($x:expr, $y:expr, $df:expr) => {
+            println!("re diff {}", ($x.re - $y.re) / $x.re);
+            println!("im diff {}", ($x.im - $y.im) / $x.im);
+            if (($x.re - $y.re) / $x.re).abs() > $df || (($x.im - $y.im).abs() / $x.im) > $df {
+                panic!("difference between {} and {} too large", $x, $y);
+            }
+        }
+    }
 
     #[rstest(
         input, expected,
@@ -118,17 +151,25 @@ mod tests {
         case::plain_with_exponents("-2.1e-7 - 4.1E-7i", Complex::new(-2.1e-7, -4.1e-7)),
         case::plain_redundant_plus("2 + -1i", Complex::new(2.0, -1.0)),
         case::plain_redundant_starting_plus("+2", Complex::new(2.0, 0.0)),
-        case::plain_redundant_starting_plus_imaginary("+3i", Complex::new(0.0, 3.0))
+        case::plain_redundant_starting_plus_imaginary("+3i", Complex::new(0.0, 3.0)),
+        case::polar_valid("@{1.0, 0}", Complex::new(1.0, 0.0)),
+        case::polar_valid_again("@{2, 10}", Complex::new(-1.678143, -1.088042)),
+        case::polar_zero("@{0, 0}", Complex::new(0.0, 0.0)),
+        case::polar_zero_again("@{0, 100000}", Complex::new(0.0, 0.0)),
+        case::polar_whitespace_ok("  @   {1, 0   }  ", Complex::new(1.0, 0.0)),
+        case::polar_exponents("@{200.0e-2, 1.0E1}", Complex::new(-1.678143, -1.088042))
     )]
     fn from_str_works(input: &str, expected: Complex<f64>) {
         let result = from_str(input).unwrap();
-        assert_eq!(expected, result);
+
+        assert_complex_close!(expected, result, 0.000001);
     }
 
     #[rstest(
         input,
         case::not_a_number("fgdfgdfg"),
         case::blank(""),
+        case::no_content("{}"),
         case::no_brackets("1.0, -1.0"),
         case::missing_start_bracket("1.0, 2.0}"),
         case::missing_end_bracket("{1.0, 1.0"),
@@ -136,9 +177,17 @@ mod tests {
         case::too_many_parts("{1.0, 2.0, 3.0}"),
         case::first_not_a_number("{b, 1.0}"),
         case::second_not_a_number("-2.0, zz"),
+        case::not_curly_brackets("(1,2)"),
         case::plain_real_not_a_number("z + 2i"),
         case::plain_imaginary_not_a_number("2 - wi"),
-        case::plain_too_many_parts("2 + 4 + 3i")
+        case::plain_too_many_parts("2 + 4 + 3i"),
+        case::polar_no_brackets("@"),
+        case::polar_empty("@{}"),
+        case::polar_missing_start_bracket("@1,2}"),
+        case::polar_missing_end_bracket("@{1,2"),
+        case::polar_too_few_parts("@{1}"),
+        case::polar_too_many_parts("@{1, 2, 3}"),
+        case::polar_not_curly_brackets("@(1,2)")
     )]
     fn parsing_invalid_str_returns_none(input: &str) {
         let result = from_str(input);
