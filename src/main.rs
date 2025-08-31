@@ -1,5 +1,8 @@
 use std::io::{self, Write};
-use complex::parse_complex::from_str;
+use complex::tokenize::shunting_yard;
+use complex::{parse_complex::from_str, tokenize::tokenize};
+use complex::display_complex::ComplexDisplay;
+use num_complex::Complex;
 
 
 fn main() {
@@ -21,8 +24,16 @@ fn main() {
             println!("Bye...");
             running = false;
         } else {
-            let c = from_str(&input);
-            println!("Complex: {:?}", c);
+            let tokenized = tokenize(&input);
+            println!("Tokenized = {:?}", tokenized);
+
+            let shunted = shunting_yard(tokenized.unwrap());
+            println!("Shunted = {:?}", shunted);
+
+            //let c = from_str(&input).unwrap();
+            //println!("Complex, std: {}", c.to_std_string());
+            //println!("Complex, plr: {}", c.to_polar_string());
         }
     }
 }
+

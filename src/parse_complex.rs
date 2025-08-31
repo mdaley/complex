@@ -3,6 +3,7 @@ use num_complex::Complex;
 pub fn from_str(s: &str) -> Result<Complex<f64>, String> {
     let result= from_bracket_form(s)
         .or_else(|| from_standard_form(s))
+        .or_else(|| from_standard_form_with_brackets(s))
         .or_else(|| from_polar_form(s));
     
     result.ok_or(format!("Cannot parse '{s}' to a complex number"))
@@ -77,6 +78,14 @@ fn from_standard_form(s: &str) -> Option<Complex<f64>> {
         
 }
 
+fn from_standard_form_with_brackets(s: &str) -> Option<Complex<f64>> {
+    let removed_brackets = s.trim()
+        .strip_prefix("{")?
+        .strip_suffix("}")?;
+    
+    return from_standard_form(removed_brackets);
+}
+
 fn from_polar_form(s: &str) -> Option<Complex<f64>> {
     let cleaned: String = s.chars()
         .filter(|c| !c.is_whitespace())
@@ -99,10 +108,11 @@ fn from_polar_form(s: &str) -> Option<Complex<f64>> {
 }
 
 /// Parse to number after removing the i suffix, but also deal with special cases of
-/// `i` and `-i`. Put any exponents back to their correct form.
+/// `i`. `+i` and `-i`. Put any exponents back to their correct form.
 fn imaginary_value(s: &str) -> Result<f64, std::num::ParseFloatError> {
      match s {
         "i" => Ok(1.0),
+        "+i" => Ok(1.0),
         "-i" => Ok(-1.0),
         _ => s[..s.len() - 1].replace("eM", "e-").replace("eP", "e+").parse::<f64>()
     }
@@ -157,7 +167,9 @@ mod tests {
         case::polar_zero("@{0, 0}", Complex::new(0.0, 0.0)),
         case::polar_zero_again("@{0, 100000}", Complex::new(0.0, 0.0)),
         case::polar_whitespace_ok("  @   {1, 0   }  ", Complex::new(1.0, 0.0)),
-        case::polar_exponents("@{200.0e-2, 1.0E1}", Complex::new(-1.678143, -1.088042))
+        case::polar_exponents("@{200.0e-2, 1.0E1}", Complex::new(-1.678143, -1.088042)),
+        case::plain_with_brackets("{2 + 4i}", Complex::new(2.0, 4.0)),
+        case::plain_with_brackets("{2 + i}", Complex::new(2.0, 1.0))
     )]
     fn from_str_works(input: &str, expected: Complex<f64>) {
         let result = from_str(input).unwrap();
