@@ -83,7 +83,7 @@ fn from_standard_form_with_brackets(s: &str) -> Option<Complex<f64>> {
         .strip_prefix("{")?
         .strip_suffix("}")?;
     
-    return from_standard_form(removed_brackets);
+    from_standard_form(removed_brackets)
 }
 
 fn from_polar_form(s: &str) -> Option<Complex<f64>> {

@@ -5,7 +5,7 @@ use num_complex::Complex;
 use crate::display_complex::ComplexDisplay;
 use crate::parse_complex::from_str;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Token {
     Plus,
     Minus,
@@ -19,7 +19,9 @@ pub enum Token {
     OpenVector,
     CloseVector,
     Comma,
-    ComplexNumber(Complex<f64>)
+    Dot,
+    ComplexNumber(Complex<f64>),
+    Function(String)
 }
 
 impl Token {
@@ -36,11 +38,15 @@ impl Token {
         matches!(self, Token::Power)
     }
 
-    pub fn to_symbol(&self) -> char {
+    pub fn to_symbol(&self) -> String {
         match self {
-            Token::Plus => '+',
-            Token::Multiply => '*',
-            _ => '#'
+            Token::Plus => "+".to_owned(),
+            Token::Minus => "-".to_owned(),
+            Token::Multiply => "*".to_owned(),
+            Token::Divide => "/".to_owned(),
+            Token::Dot => ".".to_owned(),
+            Token::Function(s) => s.to_owned(),
+            _ => "#".to_owned()
         }
     }
 }
@@ -63,6 +69,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     let mut buffer = String::new();
     let mut pos = 0;
     let mut capturing_complex = false;
+    let mut capturing_function = false;
 
     for c in input.chars() {
         pos += 1;
@@ -82,6 +89,15 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                 }
                 buffer.clear();
                 capturing_complex = false;
+            }
+        } else if capturing_function {
+            if c == '(' {
+                tokens.push(Token::Function(buffer.clone()));
+                buffer.clear();
+                tokens.push(Token::LeftParen);
+                capturing_function = false;
+            } else {
+                buffer.push(c);
             }
         } else {
             match c {
@@ -103,10 +119,10 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                     tokens.push(Token::Divide);
                 },
                 ')' => {
-                    tokens.push(Token::LeftParen);
+                    tokens.push(Token::RightParen);
                 },
                 '(' => {
-                    tokens.push(Token::RightParen);
+                    tokens.push(Token::LeftParen);
                 },
                 '~' => {
                     tokens.push(Token::Conjugate);
@@ -125,7 +141,9 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                 },
                 _ => {
                     if !c.is_whitespace() {
-                        // hmm... probably will be a variable and a function...
+                        capturing_function = true;
+                        buffer.clear();
+                        buffer.push(c);
                     }
                 }
             }
@@ -138,7 +156,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
             Ok(c) => {
                 tokens.push(Token::ComplexNumber(c));
             },
-            Err(s) => {
+            Err(_) => {
                 println!("Error at position {}", pos);
             }
         }
@@ -154,25 +172,72 @@ pub fn shunting_yard(input: Vec<Token>) ->  Vec<Token> {
 
     // TODO: Implement the rest of the algorithm from 
     // https://en.wikipedia.org/wiki/Shunting_yard_algorithm
-    for t in input {
-        if let Token::ComplexNumber(_) = t {
-            output.push(t);
-        } else {
-            let o1 = t;
-            let o2 = operators.last();
-
-            match o2 {
-                Some(o2) => {
-                    if o1.precedence() < o2.precedence() {
-                        output.push(operators.pop().unwrap());
-                        operators.push(o1);
-                    } else {
-                        operators.push(o1);
+    for o1 in input {
+        match o1 {
+            Token::ComplexNumber(_) => {
+                output.push(o1);
+            },
+            Token::Function(_) => {
+                operators.push(o1);
+            }
+            Token::LeftParen => {
+                operators.push(o1);
+            },
+            Token::Comma => {
+                loop {
+                    let o2_opt = operators.last();
+                    match o2_opt {
+                        Some(o2) => {
+                            match o2 {
+                                Token::LeftParen => {
+                                    break;
+                                },
+                                _ => {
+                                    output.push(operators.pop().unwrap());
+                                }
+                            }
+                        },
+                        None => {
+                            break;
+                        }
                     }
-                },
-                None => {
-                    operators.push(o1);
                 }
+            },
+            Token::RightParen => {
+                loop {
+                    let o2_opt = operators.last();
+                    match o2_opt {
+                        Some(o2) => {
+                            if !matches!(o2, Token::LeftParen) {
+                                output.push(operators.pop().unwrap());
+                            } else {
+                                operators.pop();
+                            }
+                        },
+                        None => {
+                            break;
+                        }
+                    }
+                }
+            },
+            _ => {
+                loop {
+                    let o2_opt = operators.last();
+                    match o2_opt {
+                        Some(o2) => {
+                            if !matches!(o2, Token::LeftParen) && (o2.precedence() > o1.precedence() || (o1.is_left_associative() && o2.precedence() == o1.precedence())) {
+                                output.push(operators.pop().unwrap());
+                            } else {
+                                break;
+                            }
+                        },
+                        None => {
+                            break;
+                        }
+                    }
+                }
+
+                operators.push(o1);
             }
         }
     }
@@ -198,11 +263,18 @@ mod tests {
      #[rstest(
         input, expected,
         case::simple_plus("{1} + {2}", "{1} {2} +"),
-        case::plus_then_times("{1} + {2} * {3}", "{1} {2} {3} * +")
+        case::plus_then_times("{1} + {2} * {3}", "{1} {2} {3} * +"),
+        case::plus_then_times_then_minux("{1} + {2} * {3} - {4}", "{1} {2} {3} * + {4} -"),
+        case::unary_function("z({1})", "{1} z"),
+        case::binary_function("pow({1}, {10})", "{1} {10} pow"),
+        case::multi_function("sum({1}, {2}, {3}, {4})", "{1} {2} {3} {4} sum")
     )]
     fn shunting_works(input: &str, expected: &str) {
         let tokens = tokenize(input).unwrap();
+        println!("TOKENS = {:?}", tokens);
         let result = shunting_yard(tokens);
+
+        println!("SHUNTED = {:?}", result);
 
         let result = result.iter().map(|r| r.to_string()).collect::<Vec<_>>().join(" ");
 
