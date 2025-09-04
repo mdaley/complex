@@ -21,7 +21,7 @@ impl ComplexDisplay for Complex<f64> {
     fn to_polar_string(&self) -> String {
         let r = ((self.im * self.im) + (self.re * self.re)).sqrt();
         let theta = self.im.atan2(self.re);
-        
+
         format!("@{{{}, {}}}", r, theta)
     }
 }
@@ -30,6 +30,6 @@ fn im_to_string(im: f64) -> String {
     match im {
         1.0 => "i".to_owned(),
         -1.0 => "-i".to_owned(),
-        _ => format!("{}i", im).to_owned()
+        _ => format!("{}i", im).to_owned(),
     }
 }

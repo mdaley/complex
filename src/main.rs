@@ -1,9 +1,8 @@
-use std::io::{self, Write};
+use complex::display_complex::ComplexDisplay;
 use complex::tokenize::shunting_yard;
 use complex::{parse_complex::from_str, tokenize::tokenize};
-use complex::display_complex::ComplexDisplay;
 use num_complex::Complex;
-
+use std::io::{self, Write};
 
 fn main() {
     println!("Complex shell!");
@@ -16,7 +15,9 @@ fn main() {
 
         let mut input = String::new();
 
-        io::stdin().read_line(&mut input).expect("Failed to read input");
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read input");
 
         println!("Input is {}", input);
 
@@ -36,4 +37,3 @@ fn main() {
         }
     }
 }
-

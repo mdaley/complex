@@ -1,17 +1,18 @@
 use num_complex::Complex;
 
 pub fn from_str(s: &str) -> Result<Complex<f64>, String> {
-    let result= from_bracket_form(s)
+    let result = from_bracket_form(s)
         .or_else(|| from_standard_form(s))
         .or_else(|| from_standard_form_with_brackets(s))
         .or_else(|| from_polar_form(s));
-    
+
     result.ok_or(format!("Cannot parse '{s}' to a complex number"))
 }
 
 /// Parse a complex number from the bracketed form `{a, b}`.
 fn from_bracket_form(s: &str) -> Option<Complex<f64>> {
-    let parts: Vec<&str> = s.trim()
+    let parts: Vec<&str> = s
+        .trim()
         .strip_prefix("{")?
         .strip_suffix("}")?
         .split(',')
@@ -30,12 +31,13 @@ fn from_bracket_form(s: &str) -> Option<Complex<f64>> {
 
 /// Parse a complex number from the standard form 'a + bi'. This works
 /// where numbers can be negative or are exponential, e.g. `-1.2e-7 - 3.0e-10`
-/// will work just fine. 
+/// will work just fine.
 fn from_standard_form(s: &str) -> Option<Complex<f64>> {
-    // Strip out all whitespace, but ensure that single spaces only 
+    // Strip out all whitespace, but ensure that single spaces only
     // exist before number signs. Make the other possible instance of
     // number signs, in exponents, safe from this though.
-    let cleanish: String = s.to_lowercase()
+    let cleanish: String = s
+        .to_lowercase()
         .replace("e-", "eM")
         .replace("e+", "eP")
         .chars()
@@ -53,10 +55,7 @@ fn from_standard_form(s: &str) -> Option<Complex<f64>> {
     let cleaned = cleanish.replace("+ -", "-");
 
     // split on the valid spaces to get only 1 or 2 parts
-    let parts: Vec<&str> = cleaned
-        .split(' ')
-        .filter(|p| !p.is_empty())
-        .collect();
+    let parts: Vec<&str> = cleaned.split(' ').filter(|p| !p.is_empty()).collect();
 
     // one part -> number is real only or imaginary only
     // two parts -> number has real part and imaginary part
@@ -75,21 +74,16 @@ fn from_standard_form(s: &str) -> Option<Complex<f64>> {
     }
 
     None
-        
 }
 
 fn from_standard_form_with_brackets(s: &str) -> Option<Complex<f64>> {
-    let removed_brackets = s.trim()
-        .strip_prefix("{")?
-        .strip_suffix("}")?;
-    
+    let removed_brackets = s.trim().strip_prefix("{")?.strip_suffix("}")?;
+
     from_standard_form(removed_brackets)
 }
 
 fn from_polar_form(s: &str) -> Option<Complex<f64>> {
-    let cleaned: String = s.chars()
-        .filter(|c| !c.is_whitespace())
-        .collect();
+    let cleaned: String = s.chars().filter(|c| !c.is_whitespace()).collect();
 
     let parts: Vec<&str> = cleaned
         .strip_prefix("@{")?
@@ -110,11 +104,14 @@ fn from_polar_form(s: &str) -> Option<Complex<f64>> {
 /// Parse to number after removing the i suffix, but also deal with special cases of
 /// `i`. `+i` and `-i`. Put any exponents back to their correct form.
 fn imaginary_value(s: &str) -> Result<f64, std::num::ParseFloatError> {
-     match s {
+    match s {
         "i" => Ok(1.0),
         "+i" => Ok(1.0),
         "-i" => Ok(-1.0),
-        _ => s[..s.len() - 1].replace("eM", "e-").replace("eP", "e+").parse::<f64>()
+        _ => s[..s.len() - 1]
+            .replace("eM", "e-")
+            .replace("eP", "e+")
+            .parse::<f64>(),
     }
 }
 
@@ -125,8 +122,8 @@ fn real_value(s: &str) -> Result<f64, std::num::ParseFloatError> {
 
 #[cfg(test)]
 mod tests {
-    use rstest::rstest;
     use super::*;
+    use rstest::rstest;
 
     // Assert that two complex numbers are close to each other, with
     // both parts not differing by more than a specified factor.
@@ -137,7 +134,7 @@ mod tests {
             if (($x.re - $y.re) / $x.re).abs() > $df || (($x.im - $y.im).abs() / $x.im) > $df {
                 panic!("difference between {} and {} too large", $x, $y);
             }
-        }
+        };
     }
 
     #[rstest(
