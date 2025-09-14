@@ -1,6 +1,6 @@
-use num_complex::Complex;
+use crate::complex::Complex;
 
-pub fn from_str(s: &str) -> Result<Complex<f64>, String> {
+pub fn from_str(s: &str) -> Result<Complex, String> {
     let result = from_bracket_form(s)
         .or_else(|| from_standard_form(s))
         .or_else(|| from_standard_form_with_brackets(s))
@@ -10,7 +10,7 @@ pub fn from_str(s: &str) -> Result<Complex<f64>, String> {
 }
 
 /// Parse a complex number from the bracketed form `{a, b}`.
-fn from_bracket_form(s: &str) -> Option<Complex<f64>> {
+fn from_bracket_form(s: &str) -> Option<Complex> {
     let parts: Vec<&str> = s
         .trim()
         .strip_prefix("{")?
@@ -32,7 +32,7 @@ fn from_bracket_form(s: &str) -> Option<Complex<f64>> {
 /// Parse a complex number from the standard form 'a + bi'. This works
 /// where numbers can be negative or are exponential, e.g. `-1.2e-7 - 3.0e-10`
 /// will work just fine.
-fn from_standard_form(s: &str) -> Option<Complex<f64>> {
+fn from_standard_form(s: &str) -> Option<Complex> {
     // Strip out all whitespace, but ensure that single spaces only
     // exist before number signs. Make the other possible instance of
     // number signs, in exponents, safe from this though.
@@ -76,13 +76,13 @@ fn from_standard_form(s: &str) -> Option<Complex<f64>> {
     None
 }
 
-fn from_standard_form_with_brackets(s: &str) -> Option<Complex<f64>> {
+fn from_standard_form_with_brackets(s: &str) -> Option<Complex> {
     let removed_brackets = s.trim().strip_prefix("{")?.strip_suffix("}")?;
 
     from_standard_form(removed_brackets)
 }
 
-fn from_polar_form(s: &str) -> Option<Complex<f64>> {
+fn from_polar_form(s: &str) -> Option<Complex> {
     let cleaned: String = s.chars().filter(|c| !c.is_whitespace()).collect();
 
     let parts: Vec<&str> = cleaned
@@ -168,7 +168,7 @@ mod tests {
         case::plain_with_brackets("{2 + 4i}", Complex::new(2.0, 4.0)),
         case::plain_with_brackets("{2 + i}", Complex::new(2.0, 1.0))
     )]
-    fn from_str_works(input: &str, expected: Complex<f64>) {
+    fn from_str_works(input: &str, expected: Complex) {
         let result = from_str(input).unwrap();
 
         assert_complex_close!(expected, result, 0.000001);

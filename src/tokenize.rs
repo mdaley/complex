@@ -1,8 +1,7 @@
 use std::fmt;
 
-use num_complex::Complex;
+use crate::complex::Complex;
 
-use crate::display_complex::ComplexDisplay;
 use crate::parse_complex::from_str;
 
 #[derive(Debug, Clone)]
@@ -20,7 +19,7 @@ pub enum Token {
     CloseVector,
     Comma,
     Dot,
-    ComplexNumber(Complex<f64>),
+    ComplexNumber(Complex),
     Function(String, String),
 }
 
@@ -49,6 +48,13 @@ impl Token {
             _ => "#".to_owned(),
         }
     }
+
+    /*pub fn operator(&self, token: Vec<Token>) ->  Fn{
+        match self {
+            Token::Plus => {
+
+        }
+    }*/
 }
 
 impl fmt::Display for Token {

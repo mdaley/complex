@@ -1,7 +1,5 @@
-use complex::display_complex::ComplexDisplay;
 use complex::tokenize::shunting_yard;
-use complex::{parse_complex::from_str, tokenize::tokenize};
-use num_complex::Complex;
+use complex::tokenize::tokenize;
 use std::io::{self, Write};
 
 fn main() {
@@ -31,9 +29,7 @@ fn main() {
             let shunted = shunting_yard(tokenized.unwrap());
             println!("Shunted = {:?}", shunted);
 
-            //let c = from_str(&input).unwrap();
-            //println!("Complex, std: {}", c.to_std_string());
-            //println!("Complex, plr: {}", c.to_polar_string());
+
         }
     }
 }
