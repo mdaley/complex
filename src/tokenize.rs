@@ -28,7 +28,7 @@ impl Token {
         match self {
             Token::Minus => 1,
             Token::Plus => 2,
-            Token::Multiply | Token::Divide => 2,
+            Token::Multiply | Token::Divide => 3,
             _ => 0,
         }
     }
@@ -292,6 +292,7 @@ mod tests {
         expected,
         case::simple_plus("{1} + {2}", "{1} {2} +"),
         case::plus_then_times("{1} + {2} * {3}", "{1} {2} {3} * +"),
+        case::times_then_plus("{1} * {2} + {3}", "{1} {2} * {3} +"),
         case::plus_then_times_then_minux("{1} + {2} * {3} - {4}", "{1} {2} {3} * + {4} -"),
         case::unary_function("z({1})", "z({1})"),
         case::binary_function("pow({1}, {10})", "pow({1}, {10})"),
