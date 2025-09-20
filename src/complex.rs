@@ -1,7 +1,9 @@
 use std::{fmt, option::Option};
 
+use crate::format::format_f64;
 
-#[derive(Debug, Copy, Clone)]
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Complex {
     pub re: f64,
     pub im: f64
@@ -17,15 +19,15 @@ impl Complex {
     pub const I: Self = Self::new(0.0, 1.0);
     pub const MINUS_I: Self = Self::new(0.0, -1.0);
 
-    pub fn to_std_string(&self) -> String {
+    pub fn to_std_string(&self, magnitude: usize, precision: usize) -> String {
         if self.im == 0.0 {
-            format!("{{{}}}", self.re)
+            format!("{{{}}}", format_f64(self.re, magnitude, precision))
         } else if self.re == 0.0 {
-            format!("{{{}}}", im_to_string(self.im))
+            format!("{{{}}}", im_to_string(self.im, magnitude, precision))
         } else if self.im < 0.0 {
-            format!("{{{} - {}}}", self.re, im_to_string(-self.im))
+            format!("{{{} - {}}}", format_f64(self.re, magnitude, precision), im_to_string(-self.im, magnitude, precision))
         } else {
-            format!("{{{} + {}}}", self.re, im_to_string(self.im))
+            format!("{{{} + {}}}", format_f64(self.re, magnitude, precision), im_to_string(self.im, magnitude, precision))
         }
     }
 
@@ -102,56 +104,109 @@ fn checked_div(a: f64, b: f64) -> Option<f64> {
     c.is_finite().then_some(c)
 }
 
-fn im_to_string(im: f64) -> String {
+fn im_to_string(im: f64, magnitude: usize, precision: usize) -> String {
     match im {
         1.0 => "i".to_owned(),
         -1.0 => "-i".to_owned(),
-        _ => format!("{}i", im).to_owned(),
+        _ => format!("{}i", format_f64(im, magnitude, precision)).to_owned(),
     }
 }
 
 impl fmt::Display for Complex {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.to_std_string())
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let magnitude = fmt.width().unwrap_or(12);
+        let precision = fmt.precision().unwrap_or(6);
+
+        write!(fmt, "{}", self.to_std_string(magnitude, precision))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use core::f64;
+
     use rstest::rstest;
     use super::*;
 
-    /*#[rstest(
-        a, b, expected,
-        case::add("{1 + i}", "{2 - i}", "{3}")
+
+    #[rstest(
+        c, expected,
+        case::re_and_im_one(Complex::new(1.0, 1.0), "{1 + i}"),
+        case::re_and_im(Complex::new(1.0, 1.5), "{1 + 1.5i}"),
+        case::re_and_negative_im_one(Complex::new(1.0, -1.0), "{1 - i}"),
+        case::re_and_negative_im(Complex::new(1.0, -7.999), "{1 - 7.999i}"),
+        case::re_only(Complex::new(-1.25, 0.0), "{-1.25}"),
+        case::im_only(Complex::new(0.0, 1.0), "{i}")
     )]
-    fn add_1(a: &str, b: &str, expected: &str) {
-        let result = 
-        assert_eq!(expected, )
-
-    }*/
-
-    #[test]
-    fn add() {
-        let a = Complex::new(1.0, 1.0);
-        let b = Complex::new(1.0, -2.0);
-
-        let c =  a.add(b);
-
-        assert_eq!("{2 - i}", c.unwrap().to_string());
-
-        // and the original numbers can still be used (because the Copy trait is derived)
-        assert_eq!("{1 + i}", a.to_string());
-        assert_eq!("{1 - 2i}", b.to_string());
+    fn string(c: Complex, expected: &str) {
+        let result = c.to_string();
+        assert_eq!(expected, result);
     }
 
-    #[test]
-    fn add_out_of_bounds() {
-        let a = Complex::new(1.0, f64::MAX);
-        let b = Complex::new(1.0, f64::MAX);
+    // TODO: testing formatting once scheme for this implemented
+    #[rstest(
+        c, magnitude, precision, expected,
+        case::one(Complex::new(0.00005, 50000.0), 6, 6, "{0.00005 + 50000i}")
+    )]
+    fn string_formatted(c: Complex, magnitude: usize, precision: usize, expected: &str) {
+        let result = format!("{:magnitude$.precision$}", c);
+        assert_eq!(expected, result);
+    }
 
-        let c = a.add(b);
+    // TODO: Extend this once formatting sorted out
+    #[rstest(
+        c, expected,
+        case::re_and_im_one(Complex::new(1.0, 0.0), "@{1, 0}")
+    )]
+    fn polar_string(c: Complex, expected: &str) {
+        let result = c.to_polar_string();
+        assert_eq!(expected, result);
+    }
 
-        assert!(c.is_none());
+    #[rstest(
+        a, b, expected,
+        case::add(Complex::new(1.0, 1.0), Complex::new(2.0, -1.0), Some(Complex::new(3.0, 0.0))),
+        case::add_infinity_none(Complex::new(1.0, 1.0), Complex::new(2.0, f64::INFINITY), None),
+        case::add_nan_none(Complex::new(f64::NAN, 1.0), Complex::new(2.0, -1.0), None)
+    )]
+    fn add(a: Complex, b: Complex, expected: Option<Complex>) {
+        let result = a.add(b);
+        assert_eq!(expected, result);
+    }
+
+    #[rstest(
+        a, b, expected,
+        case::sub(Complex::new(1.0, 1.0), Complex::new(2.0, -1.0), Some(Complex::new(-1.0, 2.0))),
+        case::sub_infinity_none(Complex::new(1.0, 1.0), Complex::new(2.0, f64::INFINITY), None),
+        case::sub_nan_none(Complex::new(f64::NAN, 1.0), Complex::new(2.0, -1.0), None)
+    )]
+    fn sub(a: Complex, b: Complex, expected: Option<Complex>) {
+        let result = a.sub(b);
+        assert_eq!(expected, result);
+    }
+
+    #[rstest(
+        a, b, expected,
+        case::mul(Complex::new(1.0, 1.0), Complex::new(2.0, -1.0), Some(Complex::new(3.0, 1.0))),
+        case::mul_overflow(Complex::new(1.1, 1.0), Complex::new(f64::MAX, -1.0), None),
+        case::sub_infinity_none(Complex::new(1.0, 1.0), Complex::new(2.0, f64::INFINITY), None),
+        case::sub_nan_none(Complex::new(f64::NAN, 1.0), Complex::new(2.0, -1.0), None)
+    )]
+    fn mul(a: Complex, b: Complex, expected: Option<Complex>) {
+        let result = a.mul(b);
+        assert_eq!(expected, result);
+    }
+
+    #[rstest(
+        a, b, expected,
+        case::div(Complex::new(3.0, 1.0), Complex::new(2.0, -1.0), Some(Complex::new(1.0, 1.0))),
+        case::div_overflow(Complex::new(1.1, 1.0), Complex::new(f64::MAX, -1.0), None),
+        case::div_by_zero(Complex::new(1.1, 1.0), Complex::ZERO, None),
+        case::div_infinity_none(Complex::new(1.0, 1.0), Complex::new(2.0, f64::INFINITY), None),
+        case::div_nan_none(Complex::new(f64::NAN, 1.0), Complex::new(2.0, -1.0), None)
+    )]
+    fn div(a: Complex, b: Complex, expected: Option<Complex>) {
+        let result = a.div(b);
+        assert_eq!(expected, result);
     }
 }

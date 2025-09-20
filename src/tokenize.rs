@@ -61,7 +61,9 @@ impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Token::ComplexNumber(c) => {
-                write!(f, "{}", c.to_std_string())
+                let magnitude = f.width().unwrap_or(12);
+                let precision = f.precision().unwrap_or(6);
+                write!(f, "{}", c.to_std_string(magnitude, precision))
             }
             Token::Function(ftn, args) => {
                 write!(f, "{}({})", ftn, args)
