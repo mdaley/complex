@@ -1,5 +1,7 @@
+use complex::process_tokens;
 use complex::tokenize::shunting_yard;
 use complex::tokenize::tokenize;
+use process_tokens::process;
 use std::io::{self, Write};
 
 fn main() {
@@ -26,10 +28,18 @@ fn main() {
             let tokenized = tokenize(&input);
             println!("Tokenized = {:?}", tokenized);
 
-            let shunted = shunting_yard(tokenized.unwrap());
+            let mut shunted = shunting_yard(tokenized.unwrap());
             println!("Shunted = {:?}", shunted);
 
-
+            let r = process(&mut shunted);
+            match r {
+                Ok(c) => {
+                    println!("Result = {}", c);
+                },
+                Err(e) => {
+                    println!("ERROR: {}", e);
+                }
+            }
         }
     }
 }
