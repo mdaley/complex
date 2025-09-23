@@ -49,13 +49,28 @@ impl Token {
         }
     }
 
+    /*fn operation(&self) -> fn(u32, u32) -> u32 {
+    match op {
+        Operation::Plus => |a, b| a + b,
+        Operation::Minus => |a, b| a - b,
+        Operation::Multiply => |a, b| a * b,
+        Operation::Divide => |a, b| {
+            if b == 0 {
+                panic!("Division by zero");
+            }
+            a / b
+        },
+    }*/
+}
+
+
     /*pub fn operator(&self, token: Vec<Token>) ->  Fn{
         match self {
             Token::Plus => {
 
         }
     }*/
-}
+//}
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

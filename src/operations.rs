@@ -1,14 +1,35 @@
-use crate::complex::Complex;
+/*use crate::{complex::Complex, tokenize::Token};
 
 
-trait ComplexOperation  {
-    fn call(&self, args: &[Complex]) -> Result<Complex, String>;
+pub trait Operation {
+    fn execute(&self, args: &[Token]) -> Result<Token, String>;
 }
 
-/*struct Add;
-impl ComplexOperation for Add {
-    fn call(&self, args: &[Complex]) -> Result<Complex, String> {
-        let r = args.get(0).unwrap() + args.get(1).unwrap();
-        Err("".to_string())
+struct AddComplex;
+
+impl Operation for AddComplex {
+    fn execute(&self, args: &[Token]) -> Result<Token, String> {
+        match args {
+            [Token::ComplexNumber(a), Token::ComplexNumber(b)] => {
+                match a.add(*b) {
+                    Some(c) => {
+                        Ok(Token::ComplexNumber(c))
+                    },
+                    None => {
+                        Err("could not add complex numbers".to_string())
+                    }
+                }
+            },
+            _ => {
+                Err("operands are not complex numbers".to_string())
+            }
+        }
+    }
+}
+
+pub fn get_operation(token: Token) -> Box<dyn Operation> {
+    match token {
+        Token::Plus => Box::new(AddComplex),
+        _ => panic!("Arrgh")
     }
 }*/

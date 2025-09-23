@@ -94,7 +94,7 @@ fn checked_sub(a: f64, b: f64) -> Option<f64> {
     c.is_finite().then_some(c)
 }
 
-fn checked_mul(a: f64, b: f64) -> Option<f64> {
+/*fn checked_mul(a: f64, b: f64) -> Option<f64> {
     let c = a * b;
     c.is_finite().then_some(c)
 }
@@ -102,7 +102,7 @@ fn checked_mul(a: f64, b: f64) -> Option<f64> {
 fn checked_div(a: f64, b: f64) -> Option<f64> {
     let c = a / b;
     c.is_finite().then_some(c)
-}
+}*/
 
 fn im_to_string(im: f64, magnitude: usize, precision: usize) -> String {
     match im {

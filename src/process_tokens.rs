@@ -30,25 +30,28 @@ fn process_recursively(tokens: &mut Vec<Token>) -> Result<Token, String> {
         // evaluate tokens down to a final number
         let mut i = 0;
         while i < tokens.len() {
-            match tokens[i] {
-                Token::Plus => {
+            match &tokens[i] {
+                token @ (Token::Plus | Token::Minus | Token::Multiply | Token::Divide) => {
                     if i < 2 {
-                        return Err("Not enough operands before operator".to_string());
+                        return Err("Need two operands before + = * or -".to_string());
                     }
 
-                    let left = extract_complex(&tokens[i - 2]);
-                    let right = extract_complex(&tokens[i - 1]);
+                    let left = extract_complex(&tokens[i - 2])?;
+                    let right = extract_complex(&tokens[i - 1])?;
 
-                    let result = left.unwrap().add(right.unwrap());
+                    let result = match token {
+                        Token::Plus => left.add(right),
+                        Token::Minus => left.sub(right),
+                        Token::Divide => left.div(right),
+                        Token::Multiply => left.mul(right),
+                        _ => panic!("Impossible operator")
+                    };
 
                     let result_token = Token::ComplexNumber(result.unwrap());
 
                     tokens.splice(i - 2..=i, [result_token]);
 
                     i = 0;
-                },
-                Token::Minus => {
-
                 },
                 _ => {
                     i += 1;
@@ -81,7 +84,11 @@ mod tests {
         case::single_number("{2 + i}", "{2 + i}"),
         case::plus("{2} + {i}}", "{2 + i}"),
         case::double_plus("{2} + {i} + {2 + i}", "{4 + 2i}"),
-        case::multiple_plus("{2} + {i} + {-2} + {-i} + {3 - 3i} + {-3 + 3i}", "{0}")
+        case::subtract("{3 + i} - {1 - i}", "{2 + 2i}"),
+        case::multiple_plus("{2} + {i} + {-2} + {-i} + {3 - 3i} + {-3 + 3i}", "{0}"),
+        case::multiply("{i} * {i}", "{-1}"),
+        case::multiple_more("{1 + i} * {3 - i}", "{4 + 2i}"),
+        case::divide("{4 + 2i} / {3 - i}", "{1 + i}")
     )]
     fn test_processing(input: &str, expected: &str) {
         let tokenized = tokenize(input).unwrap();
@@ -89,7 +96,7 @@ mod tests {
 
         let result = process(&mut shunted).unwrap();
 
-        println!("result = {}", result);
+        assert_eq!(expected, result.to_string());
     }
 
 }
