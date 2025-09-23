@@ -5,8 +5,35 @@ use crate::format::format_f64;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Complex {
+    // real part
     pub re: f64,
+    // imaginary part
     pub im: f64
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct PolarComplex {
+    // modulus
+    r: f64,
+    // angle (in radians)
+    theta: f64
+}
+
+impl PolarComplex {
+    pub const fn new(r: f64, theta: f64) -> Self {
+        PolarComplex { r, theta }
+    }
+
+    pub fn to_complex(&self) -> Complex {
+        let re = self.r * f64::cos(self.theta);
+        let im = self.r * f64::sin(self.theta);
+
+        Complex::new(re, im)
+    }
+
+    pub fn to_std_string(&self, magnitude: usize, precision: usize) -> String {
+        format!("@{{{}, {}}}", format_f64(self.r, magnitude, precision), format_f64(self.theta, magnitude, precision))
+    }
 }
 
 impl Complex {
@@ -31,11 +58,10 @@ impl Complex {
         }
     }
 
-    pub fn to_polar_string(&self) -> String {
-        let r = ((self.im * self.im) + (self.re * self.re)).sqrt();
-        let theta = self.im.atan2(self.re);
-
-        format!("@{{{}, {}}}", r, theta)
+    pub fn to_polar(&self) -> PolarComplex {
+        let r = f64::sqrt(self.re * self.re + self.im * self.im);
+        let theta = f64::atan2(self.im, self.re);
+        PolarComplex::new(r, theta)
     }
 
     pub fn add(&self, other: Complex) -> Option<Complex> {
@@ -121,6 +147,15 @@ impl fmt::Display for Complex {
     }
 }
 
+impl fmt::Display for PolarComplex {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let magnitude = fmt.width().unwrap_or(12);
+        let precision = fmt.precision().unwrap_or(6);
+
+        write!(fmt, "{}", self.to_std_string(magnitude, precision))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use core::f64;
@@ -128,6 +163,31 @@ mod tests {
     use rstest::rstest;
     use super::*;
 
+    // assert that two numbers are close
+    macro_rules! assert_close {
+        ($x:expr, $y:expr, $df:expr) => {
+            if ($x - $y).abs() > $df {
+                panic!("difference between {} and {} too large", $x, $y);
+            }
+        };
+    }
+
+    #[rstest(
+        c, expected,
+        case::zero(Complex::new(0.0, 0.0), PolarComplex::new(0.0, 0.0)),
+        case::one(Complex::new(1.0, 0.0), PolarComplex::new(1.0, 0.0)),
+        case::i(Complex::new(0.0, 1.0), PolarComplex::new(1.0, 1.57)),
+        case::minus_i(Complex::new(0.0, -1.0), PolarComplex::new(1.0, -1.571)),
+        case::minus_one(Complex::new(-1.0, 0.0), PolarComplex::new(1.0, 3.142)),
+        case::one_plus_i(Complex::new(1.0, 1.0), PolarComplex::new(1.414, 0.785)),
+        case::minus_one_minus_i(Complex::new(-1.0, -1.0), PolarComplex::new(1.414, -2.357)),
+        case::a_bigger_number(Complex::new(-123.0, 26.0), PolarComplex::new(125.718, 2.933))
+    )]
+    fn to_polar_form(c: Complex, expected: PolarComplex) {
+        let result = c.to_polar();
+        assert_close!(expected.r, result.r, 0.001);
+        assert_close!(expected.theta, result.theta, 0.001);
+    }
 
     #[rstest(
         c, expected,
@@ -159,7 +219,7 @@ mod tests {
         case::re_and_im_one(Complex::new(1.0, 0.0), "@{1, 0}")
     )]
     fn polar_string(c: Complex, expected: &str) {
-        let result = c.to_polar_string();
+        let result = c.to_polar().to_string();
         assert_eq!(expected, result);
     }
 

@@ -52,7 +52,16 @@ fn process_recursively(tokens: &mut Vec<Token>) -> Result<Token, String> {
                     tokens.splice(i - 2..=i, [result_token]);
 
                     i = 0;
-                },
+                },/* 
+                Token::Power => {
+                    if i < 1 {
+                        return Err("Need to operands before ^".to_string());
+                    }
+
+                    let operand = extract_complex(&tokens[i - 1])?;
+
+                    let result  operand.
+                },*/
                 _ => {
                     i += 1;
                 }
