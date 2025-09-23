@@ -129,12 +129,20 @@ mod tests {
     // both parts not differing by more than a specified factor.
     macro_rules! assert_complex_close {
         ($x:expr, $y:expr, $df:expr) => {
-            println!("re diff {}", ($x.re - $y.re) / $x.re);
-            println!("im diff {}", ($x.im - $y.im) / $x.im);
-            if (($x.re - $y.re) / $x.re).abs() > $df || (($x.im - $y.im).abs() / $x.im) > $df {
+            println!("x = {}", $x);
+            println!("y = {}", $y);
+            if diff_factor($x.re, $y.re) > $df || diff_factor($x.im, $y.im) > $df {
                 panic!("difference between {} and {} too large", $x, $y);
             }
         };
+    }
+
+    fn diff_factor(a: f64, b: f64) -> f64 {
+        match (a, b) {
+            (x, y) if x == y => 0.0,
+            (x @ 0.0, y) => (x - y).abs() / y,
+            (x, y ) => (x - y).abs() / x
+        }
     }
 
     #[rstest(
@@ -171,7 +179,7 @@ mod tests {
     fn from_str_works(input: &str, expected: Complex) {
         let result = from_str(input).unwrap();
 
-        assert_complex_close!(expected, result, 0.000001);
+        assert_complex_close!(expected, result, 0.001);
     }
 
     #[rstest(

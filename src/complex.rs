@@ -1,4 +1,4 @@
-use std::{fmt, option::Option};
+use std::{f64::consts::PI, fmt, option::Option};
 
 use crate::format::format_f64;
 
@@ -81,6 +81,23 @@ impl Complex {
         let im = self.re * other.im + other.re * self.im;
         
         finite_complex_or_none(re, im)
+    }
+
+    pub fn pow(&self, pow: f64) -> Option<Complex> {
+        let polar = self.to_polar();
+        let p = polar.r.powf(pow);
+        let theta = polar.theta * pow;
+
+        if p.is_finite() && theta.is_finite() {
+            let norm_theta = theta - 2.0 * PI * (theta / PI).floor();
+            if norm_theta.is_finite() {
+                Some(PolarComplex::new(p, norm_theta).to_complex())
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     // Uses:
@@ -172,6 +189,25 @@ mod tests {
         };
     }
 
+    // TODO: This should be a common macro. How do I do that?
+    // Assert that two complex numbers are close to each other, with
+    // both parts not differing by more than a specified factor.
+    macro_rules! assert_complex_close {
+        ($x:expr, $y:expr, $df:expr) => {
+            if diff_factor($x.re, $y.re) > $df || diff_factor($x.im, $y.im) > $df {
+                panic!("difference between {} and {} too large", $x, $y);
+            }
+        };
+    }
+
+    fn diff_factor(a: f64, b: f64) -> f64 {
+        match (a, b) {
+            (x, y) if x == y => 0.0,
+            (x @ 0.0, y) => (x - y).abs() / y,
+            (x, y ) => (x - y).abs() / x
+        }
+    }
+
     #[rstest(
         c, expected,
         case::zero(Complex::new(0.0, 0.0), PolarComplex::new(0.0, 0.0)),
@@ -243,6 +279,16 @@ mod tests {
     fn sub(a: Complex, b: Complex, expected: Option<Complex>) {
         let result = a.sub(b);
         assert_eq!(expected, result);
+    }
+
+    #[rstest(
+        a, b, expected,
+        case::one(Complex::new(1.0, 0.0), 17.0, Some(Complex::new(1.0, 0.0))),
+        case::i(Complex::new(0.0, 1.0), 2.0, Some(Complex::new(-1.0, 0.0)))
+    )]
+    fn pow(a: Complex, b: f64, expected: Option<Complex>) {
+        let result = a.pow(b);
+        assert_complex_close!(expected.unwrap(), result.unwrap(), 0.000001);
     }
 
     #[rstest(
