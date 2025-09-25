@@ -29,6 +29,7 @@ impl Token {
             Token::Minus => 1,
             Token::Plus => 2,
             Token::Multiply | Token::Divide => 3,
+            Token::Power => 4,
             _ => 0,
         }
     }
@@ -44,6 +45,7 @@ impl Token {
             Token::Multiply => "*".to_owned(),
             Token::Divide => "/".to_owned(),
             Token::Dot => ".".to_owned(),
+            Token::Power => "^".to_owned(),
             Token::Function(f, args) => format!("{}{}", f.to_owned(), args.to_owned()),
             _ => "#".to_owned(),
         }
@@ -161,6 +163,9 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                 }
                 '/' => {
                     tokens.push(Token::Divide);
+                }
+                '^' => {
+                    tokens.push(Token::Power);
                 }
                 ')' => {
                     tokens.push(Token::RightParen);

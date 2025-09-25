@@ -31,9 +31,9 @@ fn process_recursively(tokens: &mut Vec<Token>) -> Result<Token, String> {
         let mut i = 0;
         while i < tokens.len() {
             match &tokens[i] {
-                token @ (Token::Plus | Token::Minus | Token::Multiply | Token::Divide) => {
+                token @ (Token::Plus | Token::Minus | Token::Multiply | Token::Divide | Token::Power) => {
                     if i < 2 {
-                        return Err("Need two operands before + = * or -".to_string());
+                        return Err("Need two operands for + = * - or ^".to_string());
                     }
 
                     let left = extract_complex(&tokens[i - 2])?;
@@ -44,6 +44,7 @@ fn process_recursively(tokens: &mut Vec<Token>) -> Result<Token, String> {
                         Token::Minus => left.sub(right),
                         Token::Divide => left.div(right),
                         Token::Multiply => left.mul(right),
+                        Token::Power => left.pow(right.re),
                         _ => panic!("Impossible operator")
                     };
 

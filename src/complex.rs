@@ -100,6 +100,17 @@ impl Complex {
         }
     }
 
+    
+    pub fn powc(&self, pow: Complex) -> Option<Complex> {
+        let polar = self.to_polar();
+        let q = Complex::new(polar.r.ln(), polar.theta);
+        let r = q.mul(pow)?;
+        let s = r.re.exp();
+        let t = r.im;
+
+        finite_complex_or_none(s * t.cos(), s * t.sin())
+    }
+
     // Uses:
     // 
     // a₁ + b₁i       a₁a₂ + b₁b₂     a₂b₁ - a₁b₂
@@ -194,18 +205,12 @@ mod tests {
     // both parts not differing by more than a specified factor.
     macro_rules! assert_complex_close {
         ($x:expr, $y:expr, $df:expr) => {
-            if diff_factor($x.re, $y.re) > $df || diff_factor($x.im, $y.im) > $df {
+            println!("real df = {}", ($x.re - $y.re).abs());
+            println!("imag df = {}", ($x.im - $y.im).abs());
+            if (($x.re - $y.re).abs() > $df || ($x.im - $y.im).abs() > $df) {
                 panic!("difference between {} and {} too large", $x, $y);
             }
         };
-    }
-
-    fn diff_factor(a: f64, b: f64) -> f64 {
-        match (a, b) {
-            (x, y) if x == y => 0.0,
-            (x @ 0.0, y) => (x - y).abs() / y,
-            (x, y ) => (x - y).abs() / x
-        }
     }
 
     #[rstest(
@@ -293,6 +298,17 @@ mod tests {
 
     #[rstest(
         a, b, expected,
+        case::one(Complex::new(1.0, 0.0), Complex::new(17.0, 0.0), Some(Complex::new(1.0, 0.0))),
+        case::i(Complex::new(0.0, 1.0), Complex::new(2.0, 0.0), Some(Complex::new(-1.0, 0.0))),
+        case::i(Complex::new(2.0, 3.0), Complex::new(3.0, 2.0), Some(Complex::new(4.714144, -4.569828)))
+    )]
+    fn powc(a: Complex, b: Complex, expected: Option<Complex>) {
+        let result = a.powc(b);
+        assert_complex_close!(expected.unwrap(), result.unwrap(), 0.0001);
+    }
+
+    #[rstest(
+        a, b, expected,
         case::mul(Complex::new(1.0, 1.0), Complex::new(2.0, -1.0), Some(Complex::new(3.0, 1.0))),
         case::mul_overflow(Complex::new(1.1, 1.0), Complex::new(f64::MAX, -1.0), None),
         case::sub_infinity_none(Complex::new(1.0, 1.0), Complex::new(2.0, f64::INFINITY), None),
@@ -301,6 +317,15 @@ mod tests {
     fn mul(a: Complex, b: Complex, expected: Option<Complex>) {
         let result = a.mul(b);
         assert_eq!(expected, result);
+    }
+
+    #[rstest(
+        a, b, expected,
+        case::pow(Complex::new(2.0, 1.0), 3.0, Some(Complex::new(2.0, 11.0)))
+    )]
+    fn power(a: Complex, b: f64, expected: Option<Complex>) {
+        let result = a.pow(b);
+        assert_complex_close!(expected.unwrap(), result.unwrap(), 0.001);
     }
 
     #[rstest(
